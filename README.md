@@ -10,6 +10,7 @@ thesis/                 LaTeX sources (UMONS template), bibliography in referenc
 examples/               Ground-truth exemplars of reuse refactorings (before/after)
   R1-extract-composite-action/
   R2-extract-reusable-workflow/
+  R3-introduce-yaml-anchors/
   check.py              Automatic equivalence checks (R3, R4)
 .github/workflows/
   build-thesis.yml      Compiles the PDF; publishes it on the `pdf` branch
