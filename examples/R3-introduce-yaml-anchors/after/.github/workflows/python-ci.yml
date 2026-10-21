@@ -1,0 +1,57 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env: &ci-env
+      PYTHONUNBUFFERED: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/app
+    services: &ci-services
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 10s
+          --health-retries 5
+    steps:
+      - &checkout
+        uses: actions/checkout@v4
+      - &setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - &install-deps
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest tests/unit
+
+  integration:
+    runs-on: ubuntu-latest
+    env: *ci-env
+    services: *ci-services
+    steps:
+      - *checkout
+      - *setup-python
+      - *install-deps
+      - run: pytest tests/integration --maxfail=1
+
+  migrations:
+    runs-on: ubuntu-latest
+    env: *ci-env
+    services: *ci-services
+    steps:
+      - *checkout
+      - *setup-python
+      - *install-deps
+      - run: alembic upgrade head && alembic check
