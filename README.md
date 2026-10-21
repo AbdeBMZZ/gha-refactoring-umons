@@ -8,6 +8,7 @@ Supervisor: Prof. Tom Mens · Co-supervisor: Aref Talebzadeh Bardsiri.
 ```
 thesis/                 LaTeX sources (UMONS template), bibliography in references.bib
 examples/               Ground-truth exemplars of reuse refactorings (before/after)
+  R1-extract-composite-action/
   check.py              Automatic equivalence checks (R3, R4)
 .github/workflows/
   build-thesis.yml      Compiles the PDF; publishes it on the `pdf` branch
