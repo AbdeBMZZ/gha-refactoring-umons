@@ -1,20 +1,12 @@
 name: Build thesis PDF
 
-# Compiles thesis/main.tex on every push or PR that touches the thesis
-# (or the examples, which are \lstinputlisting'ed in it), and on demand.
+# Compiles thesis/main.tex only when a change to the thesis is merged into main.
 on:
   push:
     branches: [main]
     paths:
       - "thesis/**"
-      - "examples/**"
       - ".github/workflows/build-thesis.yml"
-  pull_request:
-    paths:
-      - "thesis/**"
-      - "examples/**"
-      - ".github/workflows/build-thesis.yml"
-  workflow_dispatch:
 
 concurrency:
   group: build-thesis-${{ github.ref }}
@@ -41,14 +33,13 @@ jobs:
           path: thesis/main.pdf
           retention-days: 30
 
-  # On main (push or manual run), also store the PDF in the repository,
-  # on a dedicated orphan branch `pdf`, so that the latest version is always at
+  # Also store the PDF in the repository, on a dedicated orphan branch `pdf`,
+  # so that the latest version is always at
   #   https://github.com/<owner>/<repo>/blob/pdf/thesis.pdf
   # Using a separate branch avoids polluting the history of main and avoids
   # re-triggering this workflow.
   publish:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
