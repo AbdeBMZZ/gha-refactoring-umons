@@ -1,0 +1,293 @@
+% Master's thesis -- UMONS, Faculté des Sciences
+% Based on the UMONS master's thesis template (Memoire-canevas, A. Buys).
+\documentclass[a4paper,11pt,notitlepage]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage[vmargin=2.6cm,hmargin=2.9cm]{geometry}
+\usepackage{indentfirst}
+\usepackage{cite}
+\usepackage[english]{babel}
+\usepackage{textcomp}
+
+\usepackage{pslatex}
+
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+% ---------------------------------------------------------------------------
+% YAML listings
+% ---------------------------------------------------------------------------
+\lstdefinelanguage{yaml}{
+  keywords={true,false,null},
+  comment=[l]{\#},
+  morestring=[b]', morestring=[b]",
+  sensitive=true
+}
+\lstset{
+  language=yaml,
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single, rulecolor=\color{gray!50},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{teal!70!black},
+  breaklines=true,
+  showstringspaces=false
+}
+
+\pagestyle{myheadings}
+
+\newcommand{\STitre}{UNIVERSIT\'E DE MONS}
+\newcommand{\FTitre}{FACULT\'E DES SCIENCES}
+\newcommand{\Titre}{Refactoring GitHub Actions for Reuse}
+
+\title{
+  \begin{minipage}\linewidth\centering
+  \LARGE\bf\STitre
+  \vskip20pt
+  \Large\bf\FTitre
+  \vskip20pt
+  \Huge \Titre
+  \end{minipage}
+}
+
+\author{Abdellah BOUMAIZA\\[1.5ex]
+Master en Sciences Informatiques\\[1.5ex]
+{\tt \small abdellah.boumaiza@student.umons.ac.be}
+}
+\date{Academic year 2026--2027}
+\begin{document}
+
+\maketitle
+\smallskip
+
+\markright{\Titre}
+
+\thispagestyle{empty}
+
+\bigskip
+
+\vfill
+
+\begin{quote}
+{Master's thesis carried out in the {\bf Software Engineering Lab}, as part of the
+{\bf Master en Sciences Informatiques}. \\ }
+\end{quote}
+\begin{quote}
+{\centering \bf Supervisor: } Prof.\ Tom MENS \\
+{\centering \bf Co-supervisor: } Aref TALEBZADEH BARDSIRI
+\end{quote}
+
+\vfill
+
+\includegraphics[width=0.2\textwidth]{img/FS.pdf} \hspace{0.6\textwidth} \includegraphics[width=0.2\textwidth]{img/logo_UMONS.pdf} \hspace{0.2\textwidth}
+
+\newpage
+The author, BOUMAIZA Abdellah, declares having complied with the ethical rules in force,
+including the University's charter on the use of Artificial Intelligence.
+
+% cf. thesis regulations
+
+\newpage
+\tableofcontents
+\normalsize
+\newpage
+
+\setlength{\parindent}{12pt}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+\setlength{\emergencystretch}{1em}
+
+\addcontentsline{toc}{chapter}{Introduction}
+
+\section*{Introduction} \label{sec_intro}
+
+This thesis aims to design and implement an automated refactoring tool for GitHub
+Actions workflows that introduces the platform's reuse mechanisms, namely composite
+actions and reusable workflows, while preserving workflow behaviour. The scope is
+initially restricted to reuse-oriented refactorings.
+
+% ===========================================================================
+\chapter{Reuse mechanisms in GitHub Actions} \label{ch_reuse}
+% ===========================================================================
+
+Before designing refactorings, it is necessary to establish which reuse mechanisms the
+platform already offers, since each of them defines a possible target for an automated
+transformation.
+
+\begin{itemize}
+  \item \textbf{Actions} encapsulate a single reusable unit of logic, referenced in a step
+    through \texttt{uses:\ owner/repo@ref}. They are widely adopted, mostly through the
+    GitHub Marketplace.
+  \item \textbf{Composite actions} group a sequence of steps in an \texttt{action.yml} file
+    and execute within the calling job. They accept inputs and expose outputs, but cannot
+    access the \texttt{secrets} context and require an explicit \texttt{shell} for every
+    \texttt{run} step. They can be stored locally in the repository or in a separate one.
+  \item \textbf{Reusable workflows}, declared with the \texttt{workflow\_call} trigger, are
+    invoked at the job level and therefore encapsulate entire jobs. They accept inputs,
+    secrets and outputs, but secrets must be passed explicitly or through
+    \texttt{secrets:\ inherit}.
+  \item \textbf{Matrix strategies} execute a single job definition over several parameter
+    values, which makes them suitable for replacing near-identical jobs within the same
+    workflow.
+\end{itemize}
+
+These mechanisms operate at different levels of granularity, namely the step, the job and
+the workflow. This granularity determines which kind of duplication each of them can
+remove, and consequently which refactoring should be applied to a given clone.
+
+% ===========================================================================
+\chapter{Related work and its relevance} \label{ch_related}
+% ===========================================================================
+
+\section{Code clones in workflows} \label{sec_clones}
+
+Cardoen, Mens and Decan~\cite{Cardoen2026} analysed 118K workflows and found clones in
+67\% of them, most of which are short sequences of two or three steps. They estimate that
+local composite actions could remove 83.7\% of clones at file scope and 75.6\% at
+repository scope, whereas reusable workflows would remove only about 2\%, since they
+require entire jobs.
+\emph{Relevance:} this study identifies \emph{Extract Composite Action} as the refactoring
+with the highest potential and provides both refactoring candidates and a quantitative
+baseline. Its estimate, however, does not verify whether the reuse would preserve
+behaviour, which is precisely the gap this thesis addresses.
+
+\section{Practitioners' reuse practices} \label{sec_practices}
+
+Onsori Delicheh et al.~\cite{OnsoriDelicheh2026} surveyed 419 practitioners. Copy-paste
+remains common for reasons of convenience and control; 26.9\% of respondents were unaware
+of composite actions and 25.4\% unfamiliar with them, and reuse is often perceived as
+adding complexity.
+\emph{Relevance:} the main barriers are awareness and effort rather than trust, which a
+tool generating reuse automatically can directly lower, provided that its output remains
+readable and that it suggests changes rather than imposing them.
+
+\section{Refactoring and workflow smells} \label{sec_smells}
+
+Fowler~\cite{Fowler2018} defines refactoring as a behaviour-preserving improvement of
+internal structure and catalogues refactorings together with the smells they remove;
+\emph{Extract Function}, for instance, directly corresponds to \emph{Extract Composite
+Action}. Khatami et al.~\cite{Khatami2024} propose a catalogue of smells specific to
+GitHub Actions workflows.
+\emph{Relevance:} these works provide the conceptual framework of the thesis, namely the
+definition of a refactoring, the link between smells and refactorings, and the
+duplication-related smells that the tool should target.
+
+% ===========================================================================
+\chapter{Existing tools} \label{ch_tools}
+% ===========================================================================
+
+A workflow refactoring tool requires three capabilities: the faithful parsing and
+serialisation of YAML, the querying and transformation of its structure, and an
+understanding of workflow semantics.
+
+\section{YAML processing} \label{sec_yaml}
+
+\textbf{PyYAML} is the reference YAML library for Python. It maps documents onto native
+dictionaries and lists, which facilitates analysis, but discards comments, key order and
+formatting upon serialisation. Moreover, it implements YAML~1.1, under which the
+\texttt{on} key of a workflow is interpreted as the boolean \texttt{True}.
+\textbf{ruamel.yaml}, in contrast, provides a round-trip mode in which documents are
+loaded into dedicated structures that retain comments, key order, quoting style and
+anchors. Its output thus remains close to the original, which is essential for developer
+acceptance and makes it the natural foundation for the tool.
+
+\section{Querying and transforming YAML} \label{sec_query}
+
+Whereas XML benefits from XPath and XQuery for querying and XSLT for transformation, YAML
+lacks standard equivalents. \textbf{JSONPath} and \textbf{JMESPath} support declarative
+queries over YAML documents once loaded as data, but provide no transformation
+capabilities. \textbf{yq} supports both querying and editing from the command line, yet
+offers limited control over formatting and has no notion of workflow semantics.
+A promising direction is therefore a lightweight query and rewriting layer, built in
+Python on ruamel.yaml and tailored to GitHub Actions workflows.
+
+\section{Workflow analysis tools} \label{sec_analysis}
+
+\textbf{gawd}~\cite{RostamiMazrae2024}, developed within the Software Engineering Lab,
+represents workflows as trees and identifies the items added, removed, moved, renamed or
+modified between two versions. It may inform the tool's internal representation and help
+verify that a refactoring yields exactly the intended changes.
+\textbf{actionlint} is a static checker that verifies workflow syntax, the types of
+\texttt{\$\{\{~\}\}} expressions, job dependencies, action inputs and embedded shell
+scripts. As its checks target errors rather than design issues such as duplication, it is
+better suited to validating refactored workflows.
+Finally, the \textbf{clone detector of Cardoen et al.}~\cite{Cardoen2026} identifies
+identical and near-identical fragments by hashing normalised workflow trees, thereby
+providing both a source of refactoring candidates and a baseline for evaluation.
+
+% ===========================================================================
+\chapter{Research direction} \label{ch_direction}
+% ===========================================================================
+
+\section{Candidate refactorings} \label{sec_candidates}
+
+Following Fowler~\cite{Fowler2018}, a refactoring is defined as a transformation that
+improves the internal structure of a program without altering its observable behaviour.
+For GitHub Actions, this suggests several reuse-oriented refactorings: the extraction of
+duplicated steps into a local composite action (and its inverse, inlining), the extraction
+of duplicated jobs into a reusable workflow invoked through \texttt{workflow\_call}, the
+splitting and merging of jobs and steps, and the decomposition of a complex workflow into
+two interdependent workflows. Each refactoring will be characterised by the duplication or
+smell it addresses, its preconditions, and the transformation it performs. Given that most
+clones consist of short step sequences, \emph{Extract Composite Action} is the natural
+starting point.
+
+\section{Technical approach} \label{sec_approach}
+
+Following the classical architecture of refactoring tools, each workflow is parsed with
+ruamel.yaml into a tree preserving its concrete syntax. This tree is then abstracted into a
+workflow model capturing jobs, steps, the dependency graph induced by \texttt{needs}, and
+the references contained in expressions. Refactoring opportunities are identified through
+queries on this model, the corresponding transformations are applied, and the result is
+serialised back to YAML together with any newly created file, such as an
+\texttt{action.yml}. The envisaged outcome is a Python command-line tool, comparable in
+design to gawd, capable of suggesting or applying refactorings.
+
+\section{Behaviour preservation} \label{sec_preservation}
+
+The principal challenge lies in guaranteeing that a refactored workflow remains
+behaviourally equivalent to the original. In GitHub Actions, this is non-trivial: each job
+executes on a separate runner and therefore does not share its file system; reusable
+workflows do not inherit secrets unless these are passed explicitly; and composite actions
+require a \texttt{shell} attribute on every \texttt{run} step and cannot access the
+\texttt{secrets} context directly. Such constraints will be formalised as preconditions to
+be verified before any refactoring is applied, and refactored workflows will additionally
+be validated with actionlint.
+
+For instance, consider a duplicated step that reads a secret: \texttt{run:\ ./deploy.sh}
+with \texttt{env:\ \{ TOKEN:\ \$\{\{ secrets.DEPLOY\_TOKEN \}\} \}}. Moved as is into a
+composite action, it would fail, since the \texttt{secrets} context is unavailable there.
+A behaviour-preserving extraction must instead turn the secret into an input of the action
+and pass it explicitly from the caller:
+
+\begin{lstlisting}
+# .github/actions/deploy/action.yml
+inputs:
+  token: { required: true }
+runs:
+  using: composite
+  steps:
+    - run: ./deploy.sh
+      shell: bash
+      env: { TOKEN: "${{ inputs.token }}" }
+
+# calling job
+- uses: ./.github/actions/deploy
+  with: { token: "${{ secrets.DEPLOY_TOKEN }}" }
+\end{lstlisting}
+
+
+\clearpage
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{acm}
+\bibliography{references}
+
+\end{document}

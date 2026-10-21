@@ -1,0 +1,15 @@
+.DS_Store
+
+# LaTeX build files
+thesis/*.aux
+thesis/*.bbl
+thesis/*.blg
+thesis/*.fdb_latexmk
+thesis/*.fls
+thesis/*.log
+thesis/*.out
+thesis/*.toc
+thesis/*.synctex.gz
+# the PDF is built by CI and published on the `pdf` branch
+thesis/main.pdf
+__pycache__/

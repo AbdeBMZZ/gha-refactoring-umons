@@ -1,0 +1,72 @@
+name: Build thesis PDF
+
+# Compiles thesis/main.tex on every push or PR that touches the thesis
+# (or the examples, which are \lstinputlisting'ed in it), and on demand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "thesis/**"
+      - "examples/**"
+      - ".github/workflows/build-thesis.yml"
+  pull_request:
+    paths:
+      - "thesis/**"
+      - "examples/**"
+      - ".github/workflows/build-thesis.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: build-thesis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile LaTeX (latexmk + bibtex)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: thesis
+
+      - name: Upload PDF as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thesis-pdf
+          path: thesis/main.pdf
+          retention-days: 30
+
+  # On main (push or manual run), also store the PDF in the repository,
+  # on a dedicated orphan branch `pdf`, so that the latest version is always at
+  #   https://github.com/<owner>/<repo>/blob/pdf/thesis.pdf
+  # Using a separate branch avoids polluting the history of main and avoids
+  # re-triggering this workflow.
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: thesis-pdf
+
+      - name: Commit PDF to the `pdf` branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir out && mv main.pdf out/thesis.pdf
+          cd out
+          git init -q -b pdf
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Thesis PDF\n\nBuilt automatically from commit %s.\n' "$GITHUB_SHA" > README.md
+          git add thesis.pdf README.md
+          git commit -q -m "Build thesis PDF from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pdf

@@ -1,0 +1,34 @@
+name: Check refactoring examples
+
+on:
+  push:
+    branches: [main]
+    paths: ["examples/**", ".github/workflows/check-examples.yml"]
+  pull_request:
+    paths: ["examples/**", ".github/workflows/check-examples.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml actionlint-py
+      - name: Lint every before/after workflow with actionlint
+        run: |
+          status=0
+          for wf in $(find examples -path '*/.github/workflows/*.yml'); do
+            repo_root="${wf%/.github/workflows/*}"
+            echo "::group::$wf"
+            (cd "$repo_root" && actionlint -shellcheck= ".github/workflows/$(basename "$wf")") || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+      - name: Equivalence checks
+        run: python3 examples/check.py
