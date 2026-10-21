@@ -13,6 +13,7 @@ examples/               Ground-truth exemplars of reuse refactorings (before/aft
   R3-introduce-yaml-anchors/
   R4-extract-workflow-template/
   R5-split-workflow/
+  R6-introduce-matrix/
   check.py              Automatic equivalence checks (R3, R4)
 .github/workflows/
   build-thesis.yml      Compiles the PDF; publishes it on the `pdf` branch
@@ -21,8 +22,6 @@ examples/               Ground-truth exemplars of reuse refactorings (before/aft
 
 Each exemplar folder contains a `README.md` (smell, steps, preconditions, what is preserved),
 a `before/` and an `after/` folder laid out as real repositories.
-
-Exemplars are added one by one (R1, R2, …).
 
 ## Latest PDF
 
