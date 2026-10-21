@@ -1,0 +1,55 @@
+name: Deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Target GitHub environment (staging | production)
+        type: string
+        required: true
+      image-tag:
+        type: string
+        required: true
+      replicas:
+        type: number
+        default: 1
+      health-url:
+        type: string
+        required: true
+    secrets:
+      deploy-token:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}:${{ inputs.image-tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}
+      - name: Deploy
+        run: |
+          ./scripts/deploy.sh \
+            --env ${{ inputs.environment }} \
+            --image "$IMAGE" \
+            --replicas ${{ inputs.replicas }}
+        env:
+          DEPLOY_TOKEN: ${{ secrets.deploy-token }}
+      - name: Smoke test
+        run: curl --fail --retry 5 --retry-delay 10 ${{ inputs.health-url }}
