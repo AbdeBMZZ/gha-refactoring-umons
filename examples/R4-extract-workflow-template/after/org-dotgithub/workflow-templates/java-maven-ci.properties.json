@@ -1,0 +1,7 @@
+{
+  "name": "Java CI (Maven, organization standard)",
+  "description": "Build and test a Maven project with Temurin 21, and keep the test reports.",
+  "iconName": "java-maven-ci",
+  "categories": ["Java", "Maven"],
+  "filePatterns": ["pom\\.xml$"]
+}

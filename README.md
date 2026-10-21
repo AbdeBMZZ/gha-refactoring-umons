@@ -11,6 +11,7 @@ examples/               Ground-truth exemplars of reuse refactorings (before/aft
   R1-extract-composite-action/
   R2-extract-reusable-workflow/
   R3-introduce-yaml-anchors/
+  R4-extract-workflow-template/
   check.py              Automatic equivalence checks (R3, R4)
 .github/workflows/
   build-thesis.yml      Compiles the PDF; publishes it on the `pdf` branch
