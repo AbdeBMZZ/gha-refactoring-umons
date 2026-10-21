@@ -1,0 +1,19 @@
+name: Deploy to production
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: production
+      image-tag: ${{ github.ref_name }}
+      replicas: 3
+      health-url: https://www.example.org/health
+    secrets:
+      deploy-token: ${{ secrets.PROD_DEPLOY_TOKEN }}
