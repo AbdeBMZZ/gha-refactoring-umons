@@ -25,10 +25,8 @@ a `before/` and an `after/` folder laid out as real repositories.
 
 ## Latest PDF
 
-Built automatically on every change to `thesis/` or `examples/` on `main`
-(or manually: *Actions → Build thesis PDF → Run workflow*):
+Built automatically when a change to `thesis/` is merged into `main`:
 **[`thesis.pdf` on the `pdf` branch](../../blob/pdf/thesis.pdf)**.
-PRs get the PDF as a downloadable workflow artifact.
 
 ## Build locally
 
