@@ -25,7 +25,7 @@ a `before/` and an `after/` folder laid out as real repositories.
 
 ## Latest PDF
 
-Built automatically when a change to `thesis/` is merged into `main`:
+Built automatically on every push to `main` that changes `thesis/`:
 **[`thesis.pdf` on the `pdf` branch](../../blob/pdf/thesis.pdf)**.
 
 ## Build locally

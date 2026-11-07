@@ -1,6 +1,6 @@
 name: Build thesis PDF
 
-# Compiles thesis/main.tex only when a change to the thesis is merged into main.
+# Compiles thesis/main.tex on every push to main that changes the thesis.
 on:
   push:
     branches: [main]
